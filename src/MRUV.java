@@ -5,9 +5,9 @@ class MRUV{
         res = vo + (a*t);
         return res;
     }
-    private int vfd(int vo, int a, int t){
+    private int vfd(int a, int t){
         int res;
-        res = vo + (a*t);
+        res = (a*t);
         return res;
     }
 }
