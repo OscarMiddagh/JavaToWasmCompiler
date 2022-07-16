@@ -1,6 +1,6 @@
 package Visitors;
 
-import Sections.Code.IBody;
+import BinaryWasm.SectionCode.IBody;
 import org.apache.bcel.generic.MethodGen;
 
 public interface IVisitor {

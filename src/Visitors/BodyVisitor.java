@@ -1,10 +1,8 @@
 package Visitors;
 
-import Leb128.SignedLeb128;
-import Leb128.UnsignedLeb128;
-import Sections.Code.*;
+import Leb128.Leb128;
+import BinaryWasm.SectionCode.*;
 import org.apache.bcel.classfile.Field;
-import org.apache.bcel.classfile.LocalVariableTable;
 import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.*;
 import java.util.ArrayList;
@@ -24,25 +22,21 @@ public class BodyVisitor extends EmptyVisitor implements IVisitor {
         this.cpg = cpg;
         this.methods = methods;
         this.fields = fields;
+
     }
     @Override
     public IBody createBody(MethodGen mg) {
         this.mg = mg;
         InstructionList ihs = mg.getInstructionList();
-        InstructionHandle iHandle = ihs.getStart();
-        InstructionHandle iHandleEnd = ihs.getEnd();
-        int posFinal = iHandleEnd.getPosition();
-        int posIni = iHandle.getPosition();
         instructions = new ArrayList<>();
         blocks = new BlocksCreator(ihs).getBlocks();
-        posInstruction = iHandle.getPosition();
-        while (posInstruction != posFinal){
-            posInstruction = iHandle.getPosition();
-            iHandle.accept(this);
-            iHandle = iHandle.getNext();
+        for (InstructionHandle ih:ihs) {
+            posInstruction = ih.getPosition();
+            ih.accept(this);
         }
         return new Body(getLocalTypeLocalDeclarations(mg),instructions,blocks);
     }
+    @Override
     public void visitALOAD(ALOAD obj) {
         instructions.add(new Instructions(posInstruction, new  byte[]{}));
     }
@@ -79,28 +73,19 @@ public class BodyVisitor extends EmptyVisitor implements IVisitor {
         }
         return res;
     }
-    private int calcularProfundidadSalto(int salto){
-        int profundidad = -1;
-        for (int i = 0; i < blocks.size(); i++) {
-            if(blocks.get(i).getIni()<=posInstruction && blocks.get(i).getEnd()> posInstruction){
-                if(blocks.get(i).getEnd()<=salto){
-                    profundidad++;
-                }
-            }
-        }
-        return profundidad;
+    @Override
+    public void visitLDC(LDC ldc){
+        int x = (int)ldc.getValue(cpg);
+        byte[] aux = readNumber(x);
+        byte[] val = new byte[aux.length+1];
+        val[0] = 0x41;
+        System.arraycopy(aux,0,val,1,aux.length);
+        instructions.add(new Instructions(posInstruction, val));
     }
     @Override
     public void visitBIPUSH(BIPUSH bipush){
         int x = bipush.getValue().intValue();
-        byte[] aux;
-        if(x<0){
-            aux  =  new SignedLeb128().writeSignedLeb128(x);
-        } else if(x>=64 && x<128) {
-            aux = new byte[]{(byte)(x-128),0x00};
-        }else {
-            aux = new UnsignedLeb128().writeUnsignedLeb128(x);
-        }
+        byte[] aux = readNumber(x);
         byte[] val = new byte[aux.length+1];
         val[0] = 0x41;
         System.arraycopy(aux,0,val,1,aux.length);
@@ -109,115 +94,115 @@ public class BodyVisitor extends EmptyVisitor implements IVisitor {
     @Override
     public void visitSIPUSH(SIPUSH sipush){
         int x = sipush.getValue().intValue();
-        byte[] aux;
-        if(x<0){
-            aux  =  new SignedLeb128().writeSignedLeb128(x);
-        } else if(x>=64 && x<128) {
-            aux = new byte[]{(byte)(x-128),0x00};
-        }else {
-            aux = new UnsignedLeb128().writeUnsignedLeb128(x);
-        }
+        byte[] aux = readNumber(x);
         byte[] val = new byte[aux.length+1];
         val[0] = 0x41;
         System.arraycopy(aux,0,val,1,aux.length);
         instructions.add(new Instructions(posInstruction, val));
     }
+    private byte[] readNumber(int x){
+        byte[] res;
+        if(x<0){
+            res  =  new Leb128().writeSignedLeb128(x);
+        } else if(x>=64 && x<128) {
+            res = new byte[]{(byte)(x-128),0x00};
+        }else {
+            res = new Leb128().writeUnsignedLeb128(x);
+        }
+        return res;
+    }
+    @Override
+    public void visitILOAD(ILOAD iload) {
+        instructions.add(new Instructions(posInstruction, new byte[]{0x20,(byte)(iload.getIndex()-1)}));
+    }
+    @Override
+    public void visitICONST(ICONST iconst) {
+        instructions.add(new Instructions(posInstruction, new byte[]{0x41,(byte)iconst.getValue().intValue()}));
+    }
     @Override
     public void visitReturnInstruction(ReturnInstruction returnInstruction) {
         instructions.add(new Instructions(posInstruction,new byte[]{0x0f}));
     }
+    private int calculateJumpDepth(int salto){
+        int profundidad = -1;
+        for (int i = 0; i < blocks.size(); i++) {
+            if(blocks.get(i).getIni()<=posInstruction && blocks.get(i).getEnd()>= posInstruction){
+                if(blocks.get(i).getEnd()<=salto){
+                    profundidad++;
+                }
+            }
+        }
+        return profundidad;
+    }
     @Override
     public void visitIF_ICMPEQ(IF_ICMPEQ if_icmpeq) {
-
-        instructions.add(new Instructions(posInstruction,new byte[]{0x46,0x0d,(byte)calcularProfundidadSalto(if_icmpeq.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction,new byte[]{0x46,0x0d,(byte)calculateJumpDepth(if_icmpeq.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIF_ICMPNE(IF_ICMPNE if_icmpne) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x47,0x0d,(byte)calcularProfundidadSalto(if_icmpne.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x47,0x0d,(byte)calculateJumpDepth(if_icmpne.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIF_ICMPLT(IF_ICMPLT if_icmplt) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x48,0x0d,(byte)calcularProfundidadSalto(if_icmplt.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x48,0x0d,(byte)calculateJumpDepth(if_icmplt.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIF_ICMPLE(IF_ICMPLE if_icmple) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x4c,0x0d,(byte)calcularProfundidadSalto(if_icmple.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x4c,0x0d,(byte)calculateJumpDepth(if_icmple.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIF_ICMPGT(IF_ICMPGT if_icmpgt) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x4a,0x0d,(byte)calcularProfundidadSalto(if_icmpgt.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x4a,0x0d,(byte)calculateJumpDepth(if_icmpgt.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIF_ICMPGE(IF_ICMPGE if_icmpge) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x4e,0x0d,(byte)calcularProfundidadSalto(if_icmpge.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x4e,0x0d,(byte)calculateJumpDepth(if_icmpge.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIFLT(IFLT iflt) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x41,0x00,0x48,0x0d,(byte)calcularProfundidadSalto(iflt.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x41,0x00,0x48,0x0d,(byte)calculateJumpDepth(iflt.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIFLE(IFLE ifle) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x41,0x00,0x4c,0x0d,(byte)calcularProfundidadSalto(ifle.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x41,0x00,0x4c,0x0d,(byte)calculateJumpDepth(ifle.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIFGT(IFGT ifgt) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x41,0x00,0x4a,0x0d,(byte)calcularProfundidadSalto(ifgt.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x41,0x00,0x4a,0x0d,(byte)calculateJumpDepth(ifgt.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIFGE(IFGE ifge) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x41,0x00,0x4e,0x0d,(byte)calcularProfundidadSalto(ifge.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x41,0x00,0x4e,0x0d,(byte)calculateJumpDepth(ifge.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIFEQ(IFEQ ifeq) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x45,0x0d,(byte)calcularProfundidadSalto(ifeq.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x45,0x0d,(byte)calculateJumpDepth(ifeq.getTarget().getPrev().getPosition())}));
     }
     @Override
     public void visitIFNE(IFNE ifne) {
-        instructions.add(new Instructions(posInstruction,new byte[]{0x41,0x00,0x47,0x0d,(byte)calcularProfundidadSalto(ifne.getTarget().getPosition())}));
+        instructions.add(new Instructions(posInstruction,new byte[]{0x41,0x00,0x47,0x0d,(byte)calculateJumpDepth(ifne.getTarget().getPrev().getPosition())}));
+    }
+    @Override
+    public void visitGOTO(GOTO aGoto) {
+        byte salto;
+        if(posInstruction<aGoto.getTarget().getPosition()){
+            salto = (byte)calculateJumpDepth(aGoto.getTarget().getPrev().getPosition());
+        }else {
+            salto = 0x00;
+        }
+        instructions.add(new Instructions(posInstruction,new byte[]{0x0c,salto}));
     }
     @Override
     public void visitISTORE(ISTORE istore) {
-
         if(istore.getIndex()+2>mg.getLocalVariables().length){
             mg.addLocalVariable("istore"+istore.getIndex(), BasicType.getType((byte) 10),null,null);
         }
         instructions.add(new Instructions(posInstruction, new byte[]{0x21,(byte)(istore.getIndex()-1)}));
     }
     @Override
-    public void visitIAND(IAND iand) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x71}));
-    }
-    @Override
-    public void visitILOAD(ILOAD iload) {
-        int index = iload.getIndex();
-        instructions.add(new Instructions(posInstruction, new byte[]{0x20,(byte)(iload.getIndex()-1)}));
-    }
-    @Override
-    public void visitIINC(IINC iinc) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x20,(byte)(iinc.getIndex()-1),0x41,(byte)iinc.getIncrement(),0x6a,0x21,(byte)(iinc.getIndex()-1)}));
-    }
-
-    @Override
-    public void visitIDIV(IDIV idiv) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x6d}));
-    }
-
-    @Override
-    public void visitIOR(IOR ior) {
-        instructions.add(new Instructions(posInstruction,new byte[]{0x72}));
-        //instructions[instPos] = new byte[]{0x72};
-    }
-
-    @Override
-    public void visitIREM(IREM irem) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x6f}));
-    }
-
-    @Override
     public void visitINVOKEVIRTUAL(INVOKEVIRTUAL invokevirtual) {
         instructions.add(new Instructions(posInstruction, new byte[]{0x10,(byte)searchIndexMethod(invokevirtual.getName(cpg)+invokevirtual.getSignature(cpg))}));
     }
-
     @Override
     public void visitGETFIELD(GETFIELD obj){
 
@@ -230,20 +215,9 @@ public class BodyVisitor extends EmptyVisitor implements IVisitor {
         }
         instructions.add(new Instructions(posInstruction, new byte[]{0x23,(byte)i}));
     }
-
     @Override
     public void visitAALOAD(AALOAD aaload) {
         instructions.add(new Instructions(posInstruction, new  byte[]{}));
-    }
-    @Override
-    public void visitGOTO(GOTO aGoto) {
-        byte salto;
-        if(posInstruction<aGoto.getTarget().getPosition()){
-            salto = (byte)calcularProfundidadSalto(aGoto.getTarget().getPosition());
-        }else {
-            salto = 0x00;
-        }
-        instructions.add(new Instructions(posInstruction,new byte[]{0x0c,salto}));
     }
 
     @Override
@@ -251,17 +225,32 @@ public class BodyVisitor extends EmptyVisitor implements IVisitor {
         instructions.add(new Instructions(posInstruction, new byte[]{0x6b}));
     }
     @Override
-    public void visitICONST(ICONST iconst) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x41,(byte)iconst.getValue().intValue()}));
-    }
-    @Override
     public void visitIMUL(IMUL imul) {
         instructions.add(new Instructions(posInstruction, new byte[]{0x6c}));
     }
-
+    @Override
+    public void visitIDIV(IDIV idiv) {
+        instructions.add(new Instructions(posInstruction, new byte[]{0x6d}));
+    }
+    @Override
+    public void visitIREM(IREM irem) {
+        instructions.add(new Instructions(posInstruction, new byte[]{0x6f}));
+    }
     @Override
     public void visitIADD(IADD iadd) {
         instructions.add(new Instructions(posInstruction, new byte[]{0x6a}));
+    }
+    @Override
+    public void visitIINC(IINC iinc) {
+        instructions.add(new Instructions(posInstruction, new byte[]{0x20,(byte)(iinc.getIndex()-1),0x41,(byte)iinc.getIncrement(),0x6a,0x21,(byte)(iinc.getIndex()-1)}));
+    }
+    @Override
+    public void visitIAND(IAND iand) {
+        instructions.add(new Instructions(posInstruction, new byte[]{0x71}));
+    }
+    @Override
+    public void visitIOR(IOR ior) {
+        instructions.add(new Instructions(posInstruction,new byte[]{0x72}));
     }
     public int searchIndexMethod(String met){
         for (int i = 1; i < methods.length; i++) {

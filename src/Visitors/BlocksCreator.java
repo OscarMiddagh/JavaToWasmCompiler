@@ -1,8 +1,8 @@
 package Visitors;
 
-import Sections.Code.Block;
-import Sections.Code.IBlock;
-import Sections.Code.Loop;
+import BinaryWasm.SectionCode.Block;
+import BinaryWasm.SectionCode.IBlock;
+import BinaryWasm.SectionCode.Loop;
 import org.apache.bcel.generic.*;
 
 import java.util.ArrayList;
@@ -20,13 +20,12 @@ public class BlocksCreator {
     }
 
     private void createBlocks() {
-        InstructionHandle iHandle = ihs.getStart();
-        IBlock block = new Block(iHandle.getPosition(),ihs.getEnd().getPosition());
+        //InstructionHandle iHandle = ihs.getStart();
+        IBlock block;
         Instruction inst;
-        //blocks.add(block);
         int inicio;
         int dest;
-        while(iHandle != null) {
+        for(InstructionHandle iHandle : ihs) {
             inst = iHandle.getInstruction();
             if (inst instanceof IfInstruction) {
                 dest = ((IfInstruction) inst).getTarget().getPrev().getPosition();
@@ -38,7 +37,6 @@ public class BlocksCreator {
                 }else {
                     inicio = calcularInicioBloque(iHandle,dest,2);
                 }
-
                 block = new Block(inicio,dest);
                 if(!blocks.contains(block)){
                     blocks.add(block);
@@ -50,7 +48,6 @@ public class BlocksCreator {
                     int n = blocks.indexOf(block);
                     blocks.set(blocks.indexOf(block),new Loop(salto,iHandle.getPosition()));
                     blocks.add(block);
-
                 }else {
                     int salto = ((GOTO) inst).getTarget().getPosition();
                     block = buscarBloque(salto);
@@ -60,7 +57,6 @@ public class BlocksCreator {
                     }
                 }
             }
-            iHandle = iHandle.getNext();
         }
     }
 
@@ -80,7 +76,6 @@ public class BlocksCreator {
             n--;
         }
         pos = iHandle.getPosition();
-        //verificar que el inicio no se cruza en ningun bloque
         for (int i = 0; i < blocks.size(); i++) {
             if(pos<blocks.get(i).getEnd() &&  dest> blocks.get(i).getEnd()){
                 pos = blocks.get(i).getIni();
