@@ -1,19 +1,19 @@
 package BinaryWasm.SectionCode;
 
+import ElementsWasm.Body.Body;
+import ElementsWasm.Body.IBody;
 import Leb128.Leb128;
 import BinaryWasm.ISection;
 
 public class SectionCode implements ISection, ISectionCode {
 
-    private Body[] bodies;
-
     private byte[] byteSection;
     private byte[] aux;
     private int sizeSection;
     private Leb128 ul;
-    public SectionCode(int nBodies) {
-        bodies = new Body[nBodies];
-        byteSection = new byte[]{0x0a,0x01,(byte)(nBodies)};
+
+    public SectionCode() {
+        byteSection = new byte[]{0x0a,0x01,0x00};
         ul = new Leb128();
         sizeSection = 1;
     }
@@ -35,5 +35,6 @@ public class SectionCode implements ISection, ISectionCode {
         System.arraycopy(aux,0,byteSection,0,aux.length);
         System.arraycopy(body.getBytesElement(),0,byteSection,aux.length,body.getBytesElement().length);
         sizeSection = sizeSection+body.getBytesElement().length;
+        byteSection[2] = (byte) (byteSection[2]+1);
     }
 }

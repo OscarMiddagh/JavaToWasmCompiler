@@ -1,9 +1,10 @@
 package BinaryWasm.SectionType;
 
+import ElementsWasm.Type.IType;
+
 import java.util.ArrayList;
 
 public class SectionType implements ISectionType {
-    private int nTypes;
     private ArrayList<IType> types;
     private byte[] bytesSection;
     private byte[] aux;
@@ -19,13 +20,15 @@ public class SectionType implements ISectionType {
 
     @Override
     public void addType(IType type) {
-        bytesSection[1] = (byte)(type.typeLength() + bytesSection[1]);
-        bytesSection[2] = (byte)(bytesSection[2]+1);
-        aux = bytesSection;
-        bytesSection = new byte[aux.length+type.typeLength()];
-        System.arraycopy(aux,0,bytesSection,0,aux.length);
-        System.arraycopy(type.getBytesElement(),0,bytesSection,aux.length,type.getBytesElement().length);
-        types.add(type);
+        if(!containsType(type)){
+            bytesSection[1] = (byte)(type.getBytesElement().length + bytesSection[1]);
+            bytesSection[2] = (byte)(bytesSection[2]+1);
+            aux = bytesSection;
+            bytesSection = new byte[aux.length+type.typeLength()];
+            System.arraycopy(aux,0,bytesSection,0,aux.length);
+            System.arraycopy(type.getBytesElement(),0,bytesSection,aux.length,type.getBytesElement().length);
+            types.add(type);
+        }
     }
 
     @Override

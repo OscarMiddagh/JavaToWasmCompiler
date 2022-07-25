@@ -1,26 +1,18 @@
 package Compiler;
 
 import BinaryWasm.BinaryFormatWasm;
-import BinaryWasm.SectionCode.Body;
-import BinaryWasm.SectionCode.IBody;
-import BinaryWasm.SectionCode.ISectionCode;
-import BinaryWasm.SectionCode.SectionCode;
-import BinaryWasm.ISection;
-import BinaryWasm.SectionCustom.SectionCustom;
-import BinaryWasm.SectionExport.Export;
-import BinaryWasm.SectionExport.ISectionExport;
-import BinaryWasm.SectionExport.SectionExport;
-import BinaryWasm.SectionFunction.ISectionFunction;
-import BinaryWasm.SectionFunction.SectionFunction;
-import BinaryWasm.SectionGlobal.Global;
-import BinaryWasm.SectionGlobal.ISectionGlobal;
-import BinaryWasm.SectionGlobal.SectionGlobal;
-import BinaryWasm.SectionType.ISectionType;
-import BinaryWasm.SectionType.SectionType;
-import BinaryWasm.SectionType.Type;
+import BinaryWasm.IBinaryFormatWasm;
+import ElementsWasm.Body.IBody;
+import ElementsWasm.Export.Export;
+import ElementsWasm.Export.IExport;
+import ElementsWasm.Function.IFunction;
+import ElementsWasm.Global.Global;
+import ElementsWasm.Global.IGlobal;
+import ElementsWasm.Type.IType;
+import ElementsWasm.Type.Type;
 import ElementsWasm.Function.Function;
 import Visitors.BodyVisitor;
-import Visitors.IVisitor;
+import Visitors.IBodyVisitor;
 import org.apache.bcel.classfile.*;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.FieldGen;
@@ -32,21 +24,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class WasmTranslate implements Compiler{
+public class WasmTranslate implements WASMCompiler{
     private JavaClass javaClass;
     private String class_name;
     private ConstantPoolGen cp;
     private DataOutputStream out;
     private Method[] methods;
     private Field[] fields;
-    private ISection sectionCustom;
-    private ISectionType sectionType;
-    private ISectionFunction sectionFunction;
-    private ISectionGlobal sectionGlobal;
-    private ISectionExport sectionExport;
-    private ISectionCode sectionCode;
-    private IVisitor bodyVisitor;
-
+    private IBodyVisitor bodyVisitor;
+    private IBinaryFormatWasm binaryFormatWasm;
     private String name;
 
     public WasmTranslate(String arg) throws IOException {
@@ -65,88 +51,105 @@ public class WasmTranslate implements Compiler{
         cp = new ConstantPoolGen(javaClass.getConstantPool());
         methods = javaClass.getMethods();
         fields = javaClass.getFields();
-        sectionCustom = new SectionCustom();
-        sectionType =  new SectionType();
-        sectionGlobal = new SectionGlobal();
-        sectionExport = new SectionExport();
-        sectionFunction = new SectionFunction(sectionType,methods.length-1);
-        sectionCode = new SectionCode(methods.length-1);
+
         bodyVisitor = new BodyVisitor(methods,fields,cp);
     }
     @Override
     public void compile() throws IOException {
-        out.write(new BinaryFormatWasm(extractDataMethods1(),extractDataFields1()).getBinaryFormatWasm());
-        extractDataMethods();
-        extractDataFields();
-        printCode();
-
-    }
-
-    private ArrayList<Global> extractDataFields1() {
-        return null;
-    }
-
-    private ArrayList<Function> extractDataMethods1(){
-
-        MethodGen mg;
-        ArrayList<Function> functions = new ArrayList<>();
-        Function function;
-        Type type;
-        IBody body;
-        for (int i = 1; i < methods.length; i++) {
-            mg = new MethodGen(methods[i], class_name, cp);
-            type = new Type(new byte[0],new byte[0]);
-            body = bodyVisitor.createBody(mg);
-            function = new Function(type,body);
-            functions.add(function);
-        }
-
-
-
-        for (int i = 1; i < methods.length; i++) {
-            sectionFunction.addFunction(methods[i].getSignature().replaceAll("Z","I"));
-            if(methods[i].isPublic()){
-                sectionExport.addExport(new Export(methods[i].getName(),0,i-1));
-            }
-            mg = new MethodGen(methods[i], class_name, cp);
-
-            sectionCode.addBody(bodyVisitor.createBody(mg));
-        }
-        return null;
-    }
-    private void extractDataMethods(){
-        MethodGen mg;
-        for (int i = 1; i < methods.length; i++) {
-            sectionFunction.addFunction(methods[i].getSignature().replaceAll("Z","I"));
-            if(methods[i].isPublic()){
-                sectionExport.addExport(new Export(methods[i].getName(),0,i-1));
-            }
-            mg = new MethodGen(methods[i], class_name, cp);
-
-            sectionCode.addBody(bodyVisitor.createBody(mg));
-        }
-    }
-    private void extractDataFields(){
-        FieldGen fieldGen;
-        int mutability;
-        for (int i = 0; i < fields.length; i++) {
-            fieldGen = new FieldGen(fields[i],cp);
-            mutability = (fieldGen.isStatic())?0:1;
-            sectionGlobal.addGlobal(new Global(fields[i].getType().getSignature(),mutability,fieldGen.getInitValue()));
-            if(fields[i].isPublic()){
-                sectionExport.addExport(new Export(fields[i].getName(),3,i));
-            }
-        }
-    }
-    private void printCode() throws IOException {
-
-        out.write(sectionCustom.getSection());
-        out.write(sectionType.getSection());
-        out.write(sectionFunction.getSection());
-        out.write(sectionGlobal.getSection());
-        out.write(sectionExport.getSection());
-        out.write(sectionCode.getSection());
+        binaryFormatWasm = new BinaryFormatWasm(extractDataMethods(),extractDataFields());
+        out.write(binaryFormatWasm.getBinaryFormatWasm());
         out.close();
         System.out.println("Archivo " + name+" generado.");
     }
+
+
+    private ArrayList<IFunction> extractDataMethods(){
+        MethodGen mg;
+        ArrayList<IFunction> functions = new ArrayList<>();
+        IFunction function;
+        IType type;
+        IBody body;
+        IExport export;
+        String signature;
+        for (int i = 1; i < methods.length; i++) {
+            mg = new MethodGen(methods[i], class_name, cp);
+            signature = mg.getSignature();
+            type = new Type(transformParameters(signature),transformResult(signature.charAt(signature.length()-1)));
+            body = bodyVisitor.createBody(mg);
+            function = new Function(type,body);
+            if(methods[i].isPublic()){
+                export = new Export(methods[i].getName(),0,i-1);
+                function.setExport(export);
+            }
+            functions.add(function);
+        }
+        return functions;
+    }
+
+    private ArrayList<IGlobal> extractDataFields() {
+        FieldGen fieldGen;
+        ArrayList<IGlobal> globals = new ArrayList<>();
+        IExport export;
+        IGlobal global;
+        int mutability;
+        char typeGlobal;
+        for (int i = 0; i < fields.length; i++) {
+            fieldGen = new FieldGen(fields[i],cp);
+            mutability = (fieldGen.isStatic())?0:1;
+            typeGlobal = fields[i].getType().getSignature().charAt(0);
+            global = new Global(readChar(typeGlobal),mutability,fieldGen.getInitValue());
+            if(fields[i].isPublic()){
+                export = new Export(fields[i].getName(),3,i);
+                global.setExport(export);
+            }
+            globals.add(global);
+        }
+        return globals;
+    }
+    private byte[] transformResult(char result) {
+        byte res = readChar(result);
+        return res==0x01?new byte[0]:new byte[]{res};
+    }
+
+    private byte[] transformParameters(String signature){
+        char parameter;
+        byte[] parameters = new byte[signature.length()-3];
+        for (int i = 1; i < signature.length()-2; i++) {
+            parameter = signature.charAt(i);
+            parameters[i-1] = readChar(parameter);
+        }
+        return parameters;
+    }
+    private byte readChar(char c){
+        byte result = 0x00;
+        switch (c){
+            case 'I': //int
+            case 'Z': //boolean
+                result= 0x7F;
+                break;
+            case 'V':
+                result = 0x01; //Usaremos 1 por conveniencia, ya que no hay una traduccion en WASM
+                break;
+            case 'B': //byte
+                break;
+            case 'C': //char
+                break;
+            case 'D': //double
+                result = 0x7C;
+                break;
+            case 'F': //float
+                result = 0x7D;
+                break;
+
+            case 'J': //long
+                result = 0x7E;
+                break;
+            case '[': //array
+                break;
+        }
+        return result;
+    }
+
+
+
 }

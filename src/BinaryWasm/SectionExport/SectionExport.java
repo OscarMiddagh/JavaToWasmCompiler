@@ -1,5 +1,7 @@
 package BinaryWasm.SectionExport;
 
+import ElementsWasm.Export.IExport;
+
 public class SectionExport implements ISectionExport {
 
     private byte[] bytesSection;

@@ -1,13 +1,13 @@
 package Visitors;
 
-import BinaryWasm.SectionCode.Block;
-import BinaryWasm.SectionCode.IBlock;
-import BinaryWasm.SectionCode.Loop;
+import ElementsWasm.Body.Block;
+import ElementsWasm.Body.IBlock;
+import ElementsWasm.Body.Loop;
 import org.apache.bcel.generic.*;
 
 import java.util.ArrayList;
 
-public class BlocksCreator {
+public class BlocksCreator implements IBlocksCreator{
 
     private ArrayList<IBlock> blocks;
     private InstructionList ihs;
@@ -33,9 +33,9 @@ public class BlocksCreator {
                 if(inst instanceof IFEQ || inst instanceof IFNE || inst instanceof IFLT || inst instanceof IFGE
                         || inst instanceof IFGT || inst instanceof IFLE || inst instanceof IFNONNULL || inst instanceof IFNULL){
 
-                    inicio = calcularInicioBloque(iHandle,dest,1);
+                    inicio = calculateIniBlock(iHandle,dest,1);
                 }else {
-                    inicio = calcularInicioBloque(iHandle,dest,2);
+                    inicio = calculateIniBlock(iHandle,dest,2);
                 }
                 block = new Block(inicio,dest);
                 if(!blocks.contains(block)){
@@ -50,7 +50,7 @@ public class BlocksCreator {
                     blocks.add(block);
                 }else {
                     int salto = ((GOTO) inst).getTarget().getPosition();
-                    block = buscarBloque(salto);
+                    block = searchBlock(salto);
                     block = new Block(block.getIni(),((GOTO) inst).getTarget().getPrev().getPosition());
                     if(!blocks.contains(block)){
                         blocks.add(block);
@@ -59,12 +59,12 @@ public class BlocksCreator {
             }
         }
     }
-
+    @Override
     public ArrayList<IBlock> getBlocks(){
         return blocks;
     }
 
-    private int calcularInicioBloque(InstructionHandle iHandle, int dest, int n) {
+    private int calculateIniBlock(InstructionHandle iHandle, int dest, int n) {
         Instruction instruction;
         int pos;
         while (n!=0){
@@ -83,7 +83,7 @@ public class BlocksCreator {
         }
         return  pos;
     }
-    private IBlock buscarBloque(int salto) {
+    private IBlock searchBlock(int salto) {
         int dif = 0;
         int nuevaDif = 0;
         int element = 0;

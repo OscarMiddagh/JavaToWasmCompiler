@@ -1,6 +1,7 @@
 package BinaryWasm.SectionType;
 
 import BinaryWasm.ISection;
+import ElementsWasm.Type.IType;
 
 public interface ISectionType extends ISection {
     void addType(IType type);

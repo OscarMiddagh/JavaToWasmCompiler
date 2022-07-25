@@ -1,13 +1,13 @@
 package Visitors;
 
+import ElementsWasm.Body.*;
 import Leb128.Leb128;
-import BinaryWasm.SectionCode.*;
 import org.apache.bcel.classfile.Field;
 import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.*;
 import java.util.ArrayList;
 
-public class BodyVisitor extends EmptyVisitor implements IVisitor {
+public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
     private ConstantPoolGen cpg;
     private Method[] methods;
     private Field[] fields;
@@ -34,13 +34,14 @@ public class BodyVisitor extends EmptyVisitor implements IVisitor {
             posInstruction = ih.getPosition();
             ih.accept(this);
         }
-        return new Body(getLocalTypeLocalDeclarations(mg),instructions,blocks);
+        body = new Body(getLocalTypeLocalsDeclarations(mg),instructions,blocks);
+        return body;
     }
     @Override
     public void visitALOAD(ALOAD obj) {
         instructions.add(new Instructions(posInstruction, new  byte[]{}));
     }
-    private ArrayList<TypeLocalsVariables> getLocalTypeLocalDeclarations(MethodGen mg) {
+    private ArrayList<TypeLocalsVariables> getLocalTypeLocalsDeclarations(MethodGen mg) {
         LocalVariableGen[] lgv = mg.getLocalVariables();
         ArrayList<TypeLocalsVariables> res = new ArrayList<>();
         byte actual = 0;
@@ -205,15 +206,25 @@ public class BodyVisitor extends EmptyVisitor implements IVisitor {
     }
     @Override
     public void visitGETFIELD(GETFIELD obj){
-
         int i = 0;
         String met = fields[0].getName()+fields[0].getSignature();
         String met0 = obj.getName(cpg)+obj.getSignature(cpg);
-        while (i<fields.length&&met.equals(met0)){
+        while (i<fields.length&&!met.equals(met0)){
             met = fields[i].getName()+fields[i].getSignature();
             i++;
         }
         instructions.add(new Instructions(posInstruction, new byte[]{0x23,(byte)i}));
+    }
+    @Override
+    public void visitPUTFIELD(PUTFIELD obj){
+        int i = 0;
+        String met = fields[0].getName()+fields[0].getSignature();
+        String met0 = obj.getName(cpg)+obj.getSignature(cpg);
+        while (i<fields.length&&!met.equals(met0)){
+            met = fields[i].getName()+fields[i].getSignature();
+            i++;
+        }
+        instructions.add(new Instructions(posInstruction, new byte[]{0x24,(byte)i}));
     }
     @Override
     public void visitAALOAD(AALOAD aaload) {
@@ -252,7 +263,7 @@ public class BodyVisitor extends EmptyVisitor implements IVisitor {
     public void visitIOR(IOR ior) {
         instructions.add(new Instructions(posInstruction,new byte[]{0x72}));
     }
-    public int searchIndexMethod(String met){
+    private int searchIndexMethod(String met){
         for (int i = 1; i < methods.length; i++) {
             if(met.equals(methods[i].getName()+methods[i].getSignature())){
                 return i-1;

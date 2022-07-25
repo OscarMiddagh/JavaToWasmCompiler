@@ -1,6 +1,11 @@
 package ElementsWasm.Function;
 
-import BinaryWasm.IElement;
+import ElementsWasm.Body.IBody;
+import ElementsWasm.IElement;
+import ElementsWasm.ExportableElement;
+import ElementsWasm.Type.IType;
 
-public interface IFunction extends IElement {
+public interface IFunction extends ExportableElement {
+    IBody getBody();
+    IType getType();
 }
