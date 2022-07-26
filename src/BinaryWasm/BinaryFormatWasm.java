@@ -32,7 +32,7 @@ public class BinaryFormatWasm implements IBinaryFormatWasm{
     public BinaryFormatWasm(ArrayList<IFunction> functions, ArrayList<IGlobal> globals){
         sectionCustom = new SectionCustom();
         sectionType = new SectionType();
-        sectionFunction = new SectionFunction(functions.size());
+        sectionFunction = new SectionFunction();
         sectionExport = new SectionExport();
         sectionGlobal = new SectionGlobal();
         sectionCode = new SectionCode();
