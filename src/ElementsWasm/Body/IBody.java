@@ -8,5 +8,5 @@ public interface IBody extends IElement {
 
     ArrayList<TypeLocalsVariables> getLocalsVariables();
     ArrayList<IBlock> getBlocks();
-    ArrayList<Instructions> getInstructions();
+    ArrayList<InterfaceInstructions> getInstructions();
 }

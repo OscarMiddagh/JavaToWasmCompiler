@@ -5,36 +5,37 @@ import ElementsWasm.Body.IBody;
 import Leb128.Leb128;
 import BinaryWasm.ISection;
 
-public class SectionCode implements ISection, ISectionCode {
+public class SectionCode implements ISectionCode {
 
-    private byte[] byteSection;
+    private byte[] bytesSection;
     private byte[] aux;
     private int sizeSection;
     private Leb128 ul;
 
     public SectionCode() {
-        byteSection = new byte[]{0x0a,0x01,0x00};
-        ul = new Leb128();
         sizeSection = 1;
+        bytesSection = new byte[]{0x0a,(byte)sizeSection,0x00};
+        ul = new Leb128();
     }
 
     @Override
     public byte[] getSection(){
-            byte[] size = ul.writeUnsignedLeb128(sizeSection);
-            aux = byteSection;
-            byteSection = new byte[aux.length-1+size.length];
-            byteSection[0] = 0xa;
-            System.arraycopy(size,0,byteSection,1,size.length);
-            System.arraycopy(aux,2,byteSection,size.length+1,aux.length-2);
-        return byteSection;
+        return bytesSection;
     }
     @Override
     public void addBody(IBody body) {
-        aux = byteSection;
-        byteSection = new byte[aux.length+body.getBytesElement().length];
-        System.arraycopy(aux,0,byteSection,0,aux.length);
-        System.arraycopy(body.getBytesElement(),0,byteSection,aux.length,body.getBytesElement().length);
+        byte[] sizeAct;
+        int lengthArraySizePrev;
+        lengthArraySizePrev = ul.writeUnsignedLeb128(sizeSection).length;
         sizeSection = sizeSection+body.getBytesElement().length;
-        byteSection[2] = (byte) (byteSection[2]+1);
+        sizeAct = ul.writeUnsignedLeb128(sizeSection);
+        aux = bytesSection;
+        bytesSection = new byte[aux.length+body.getBytesElement().length+(sizeAct.length-lengthArraySizePrev)];
+        bytesSection[0] = 0x0a;
+        System.arraycopy(sizeAct,0,bytesSection,1,sizeAct.length);
+        System.arraycopy(aux,lengthArraySizePrev+1,bytesSection,sizeAct.length+1,aux.length-(lengthArraySizePrev+1));
+        System.arraycopy(body.getBytesElement(),0,bytesSection,aux.length+sizeAct.length-lengthArraySizePrev,body.getBytesElement().length);
+        bytesSection[sizeAct.length+1]++;
     }
+
 }

@@ -5,9 +5,9 @@ public class Body implements IBody {
     private byte[] bodyAux;
     private ArrayList<TypeLocalsVariables> localsVariables;
     private ArrayList<IBlock> blocks;
-    private ArrayList<Instructions> instructions;
+    private ArrayList<InterfaceInstructions> instructions;
 
-    public Body(ArrayList<TypeLocalsVariables> localsVariables, ArrayList<Instructions> instructions, ArrayList<IBlock> blocks){
+    public Body(ArrayList<TypeLocalsVariables> localsVariables, ArrayList<InterfaceInstructions> instructions, ArrayList<IBlock> blocks){
         this.localsVariables =localsVariables;
         this.instructions = instructions;
         this.blocks = blocks;
@@ -41,7 +41,7 @@ public class Body implements IBody {
     }
 
     private void addBlocks() {
-        Instructions ins;
+        InterfaceInstructions ins;
         byte[] instruction;
         byte[] aux;
         for (int i = 1; i < blocks.size(); i++) {
@@ -66,7 +66,7 @@ public class Body implements IBody {
             ins.setByteInstructions(aux);
         }
     }
-    private Instructions searchInstructions(int instPos){
+    private InterfaceInstructions searchInstructions(int instPos){
         for (int i = 0; i < instructions.size(); i++) {
             if(instructions.get(i).getPos()==instPos){
                 return instructions.get(i);
@@ -86,7 +86,7 @@ public class Body implements IBody {
     }
 
     @Override
-    public ArrayList<Instructions> getInstructions() {
+    public ArrayList<InterfaceInstructions> getInstructions() {
         return instructions;
     }
 }

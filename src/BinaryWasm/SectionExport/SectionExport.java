@@ -20,7 +20,7 @@ public class SectionExport implements ISectionExport {
     public void addExport(IExport export) {
         byte[] bytesExport = export.getBytesElement();
         bytesSection[1] = (byte)(bytesExport.length + bytesSection[1]);
-        bytesSection[2] = (byte)(bytesSection[2]+1);
+        bytesSection[2]++;
         aux = bytesSection;
         bytesSection = new byte[aux.length+bytesExport.length ];
         System.arraycopy(aux,0,bytesSection,0,aux.length);

@@ -33,8 +33,24 @@ public class Type implements IType {
 
     @Override
     public boolean equals(Object obj){
+        boolean res = true;
         Type tp = (Type) obj;
-        return this.getBytesElement().equals(tp.getBytesElement());
+        byte[] paramObj = tp.getParameters();
+        byte[] resObj = tp.getResults();
+        if(paramObj.length!=parameters.length || resObj.length!=results.length){
+            res = false;
+        }
+        for (int i = 0; i < paramObj.length && res; i++) {
+            if(paramObj[i]!=parameters[i]){
+                res = false;
+            }
+        }
+        for (int j = 0; j < resObj.length && res; j++) {
+            if(resObj[j]!=results[j]){
+                res = false;
+            }
+        }
+        return res;
     }
 
     @Override

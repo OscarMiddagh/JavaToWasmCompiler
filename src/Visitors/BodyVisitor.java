@@ -11,7 +11,7 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
     private ConstantPoolGen cpg;
     private Method[] methods;
     private Field[] fields;
-    private ArrayList<Instructions> instructions;
+    private ArrayList<InterfaceInstructions> instructions;
     private ArrayList<IBlock> blocks;
     private IBody body;
     private int posInstruction;
@@ -36,10 +36,6 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
         }
         body = new Body(getLocalTypeLocalsDeclarations(mg),instructions,blocks);
         return body;
-    }
-    @Override
-    public void visitALOAD(ALOAD obj) {
-        instructions.add(new Instructions(posInstruction, new  byte[]{}));
     }
     private ArrayList<TypeLocalsVariables> getLocalTypeLocalsDeclarations(MethodGen mg) {
         LocalVariableGen[] lgv = mg.getLocalVariables();
@@ -74,6 +70,41 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
         }
         return res;
     }
+    private byte[] readNumber(int x){
+        byte[] res;
+        if(x<0){
+            res  =  new Leb128().writeSignedLeb128(x);
+        } else if(x>=64 && x<128) {
+            res = new byte[]{(byte)(x-128),0x00};
+        }else {
+            res = new Leb128().writeUnsignedLeb128(x);
+        }
+        return res;
+    }
+    private int calculateJumpDepth(int salto){
+        int profundity = -1;
+        for (int i = 0; i < blocks.size(); i++) {
+            if(blocks.get(i).getIni()<=posInstruction && blocks.get(i).getEnd()>= posInstruction){
+                if(blocks.get(i).getEnd()<=salto){
+                    profundity++;
+                }
+            }
+        }
+        return profundity;
+    }
+    private int searchIndexMethod(String met){
+        for (int i = 1; i < methods.length; i++) {
+            if(met.equals(methods[i].getName()+methods[i].getSignature())){
+                return i-1;
+            }
+        }
+        return -1;
+    }
+    @Override
+    public void visitALOAD(ALOAD obj) {
+        instructions.add(new Instructions(posInstruction, new  byte[]{}));
+    }
+
     @Override
     public void visitLDC(LDC ldc){
         int x = (int)ldc.getValue(cpg);
@@ -101,17 +132,7 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
         System.arraycopy(aux,0,val,1,aux.length);
         instructions.add(new Instructions(posInstruction, val));
     }
-    private byte[] readNumber(int x){
-        byte[] res;
-        if(x<0){
-            res  =  new Leb128().writeSignedLeb128(x);
-        } else if(x>=64 && x<128) {
-            res = new byte[]{(byte)(x-128),0x00};
-        }else {
-            res = new Leb128().writeUnsignedLeb128(x);
-        }
-        return res;
-    }
+
     @Override
     public void visitILOAD(ILOAD iload) {
         instructions.add(new Instructions(posInstruction, new byte[]{0x20,(byte)(iload.getIndex()-1)}));
@@ -124,17 +145,7 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
     public void visitReturnInstruction(ReturnInstruction returnInstruction) {
         instructions.add(new Instructions(posInstruction,new byte[]{0x0f}));
     }
-    private int calculateJumpDepth(int salto){
-        int profundidad = -1;
-        for (int i = 0; i < blocks.size(); i++) {
-            if(blocks.get(i).getIni()<=posInstruction && blocks.get(i).getEnd()>= posInstruction){
-                if(blocks.get(i).getEnd()<=salto){
-                    profundidad++;
-                }
-            }
-        }
-        return profundidad;
-    }
+
     @Override
     public void visitIF_ICMPEQ(IF_ICMPEQ if_icmpeq) {
         instructions.add(new Instructions(posInstruction,new byte[]{0x46,0x0d,(byte)calculateJumpDepth(if_icmpeq.getTarget().getPrev().getPosition())}));
@@ -195,7 +206,7 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
     }
     @Override
     public void visitISTORE(ISTORE istore) {
-        if(istore.getIndex()+2>mg.getLocalVariables().length){
+        if(istore.getIndex()+1>=mg.getLocalVariables().length){
             mg.addLocalVariable("istore"+istore.getIndex(), BasicType.getType((byte) 10),null,null);
         }
         instructions.add(new Instructions(posInstruction, new byte[]{0x21,(byte)(istore.getIndex()-1)}));
@@ -262,14 +273,6 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
     @Override
     public void visitIOR(IOR ior) {
         instructions.add(new Instructions(posInstruction,new byte[]{0x72}));
-    }
-    private int searchIndexMethod(String met){
-        for (int i = 1; i < methods.length; i++) {
-            if(met.equals(methods[i].getName()+methods[i].getSignature())){
-                return i-1;
-            }
-        }
-        return -1;
     }
 
 }

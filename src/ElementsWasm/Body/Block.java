@@ -11,6 +11,7 @@ public class Block implements IBlock {
 
     @Override
     public boolean equals(Object obj){
+
         Block bl = (Block) obj;
         return this.end== bl.getEnd() && this.ini == bl.getIni();
     }
