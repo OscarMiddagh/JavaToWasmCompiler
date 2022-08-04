@@ -72,11 +72,13 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
     }
     private byte[] readNumber(int x){
         byte[] res;
-        if(x<0){
+        if(x<-64){
             res  =  new Leb128().writeSignedLeb128(x);
         } else if(x>=64 && x<128) {
             res = new byte[]{(byte)(x-128),0x00};
-        }else {
+        } else if(x>=-64 && x<-1){
+            res = new byte[]{(byte)(128+x)};
+        } else {
             res = new Leb128().writeUnsignedLeb128(x);
         }
         return res;
@@ -139,7 +141,11 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
     }
     @Override
     public void visitICONST(ICONST iconst) {
-        instructions.add(new Instructions(posInstruction, new byte[]{0x41,(byte)iconst.getValue().intValue()}));
+        if(iconst.getValue().intValue()!=-1){
+            instructions.add(new Instructions(posInstruction, new byte[]{0x41,(byte)iconst.getValue().intValue()}));
+        }else {
+            instructions.add(new Instructions(posInstruction, new byte[]{0x41,(byte)(128+iconst.getValue().intValue())}));
+        }
     }
     @Override
     public void visitReturnInstruction(ReturnInstruction returnInstruction) {
