@@ -141,11 +141,14 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
     }
     @Override
     public void visitICONST(ICONST iconst) {
-        if(iconst.getValue().intValue()!=-1){
-            instructions.add(new Instructions(posInstruction, new byte[]{0x41,(byte)iconst.getValue().intValue()}));
+        int x = iconst.getValue().intValue();
+        byte [] instr;
+        if(x!=-1){
+            instr = new byte[]{0x41,(byte)x};
         }else {
-            instructions.add(new Instructions(posInstruction, new byte[]{0x41,(byte)(128+iconst.getValue().intValue())}));
+            instr =new byte[]{0x41,(byte)(128+x)};
         }
+        instructions.add(new Instructions(posInstruction,instr));
     }
     @Override
     public void visitReturnInstruction(ReturnInstruction returnInstruction) {
