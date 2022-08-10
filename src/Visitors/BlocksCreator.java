@@ -11,11 +11,13 @@ public class BlocksCreator implements IBlocksCreator{
 
     private ArrayList<IBlock> blocks;
     private InstructionList ihs;
+    private IBlock blockIni;
 
     public BlocksCreator(InstructionList ihs){
         this.ihs = ihs;
         blocks = new ArrayList<>();
-        blocks.add(new Block(ihs.getStart().getPosition(),ihs.getEnd().getPosition()));//Anadiendo el bloque inicial
+        blockIni = new Block(ihs.getStart().getPosition(),ihs.getEnd().getPosition());
+        blocks.add(blockIni);//Anadiendo el bloque inicial
         createBlocks();
     }
 
@@ -29,10 +31,8 @@ public class BlocksCreator implements IBlocksCreator{
             inst = iHandle.getInstruction();
             if (inst instanceof IfInstruction) {
                 dest = ((IfInstruction) inst).getTarget().getPrev().getPosition();
-
                 if(inst instanceof IFEQ || inst instanceof IFNE || inst instanceof IFLT || inst instanceof IFGE
                         || inst instanceof IFGT || inst instanceof IFLE || inst instanceof IFNONNULL || inst instanceof IFNULL){
-
                     inicio = calculateIniBlock(iHandle,dest,1);
                 }else {
                     inicio = calculateIniBlock(iHandle,dest,2);
@@ -46,12 +46,15 @@ public class BlocksCreator implements IBlocksCreator{
                     int salto = ((GOTO) inst).getTarget().getPosition();
                     block = new Block(salto,iHandle.getPosition());
                     int n = blocks.indexOf(block);
-                    blocks.set(blocks.indexOf(block),new Loop(salto,iHandle.getPosition()));
+                    blocks.set(n,new Loop(salto,iHandle.getPosition()));
                     blocks.add(block);
                 }else {
                     int salto = ((GOTO) inst).getTarget().getPosition();
+                    if(salto != blockIni.getEnd()){
+                       salto = ((GOTO) inst).getTarget().getPrev().getPosition();
+                    }
                     block = searchBlock(salto);
-                    block = new Block(block.getIni(),((GOTO) inst).getTarget().getPrev().getPosition());
+                    block = new Block(block.getIni(),salto);
                     if(!blocks.contains(block)){
                         blocks.add(block);
                     }
