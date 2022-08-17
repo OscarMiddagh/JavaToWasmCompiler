@@ -12,12 +12,14 @@ public class BlocksCreator implements IBlocksCreator{
     private ArrayList<IBlock> blocks;
     private InstructionList ihs;
     private IBlock blockIni;
+    private ConstantPoolGen cpg;
 
-    public BlocksCreator(InstructionList ihs){
+    public BlocksCreator(InstructionList ihs, ConstantPoolGen cpg){
         this.ihs = ihs;
         blocks = new ArrayList<>();
         blockIni = new Block(ihs.getStart().getPosition(),ihs.getEnd().getPosition());
         blocks.add(blockIni);//Anadiendo el bloque inicial
+        this.cpg = cpg;
         createBlocks();
     }
 
@@ -73,8 +75,10 @@ public class BlocksCreator implements IBlocksCreator{
         while (n!=0){
             iHandle = iHandle.getPrev();
             instruction = iHandle.getInstruction();
-            if (instruction instanceof ArithmeticInstruction || instruction instanceof INVOKEVIRTUAL|| instruction instanceof GETFIELD){
+            if (instruction instanceof ArithmeticInstruction){
                 n = n +2;
+            }else if(instruction instanceof INVOKEVIRTUAL){
+                n = n +((INVOKEVIRTUAL) instruction).getArgumentTypes(cpg).length;
             }
             n--;
         }

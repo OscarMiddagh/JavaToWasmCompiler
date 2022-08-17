@@ -29,7 +29,7 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
         this.mg = mg;
         InstructionList ihs = mg.getInstructionList();
         instructions = new ArrayList<>();
-        blocks = new BlocksCreator(ihs).getBlocks();
+        blocks = new BlocksCreator(ihs,cpg).getBlocks();
         for (InstructionHandle ih:ihs) {
             posInstruction = ih.getPosition();
             ih.accept(this);
