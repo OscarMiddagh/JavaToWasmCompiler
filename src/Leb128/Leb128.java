@@ -16,7 +16,7 @@ public class Leb128 {
         }
         return out.toByteArray();
     }
-    public byte[] writeUnsignedLeb128(int value) {
+    public static byte[] writeUnsignedLeb128(int value) {
         ByteArrayOutputStream o = new ByteArrayOutputStream();
         int remaining = value >>> 7;
         while (remaining != 0) {

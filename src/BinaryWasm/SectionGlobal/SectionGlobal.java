@@ -3,7 +3,6 @@ package BinaryWasm.SectionGlobal;
 import ElementsWasm.Global.IGlobal;
 
 public class SectionGlobal implements ISectionGlobal {
-
     private byte[] bytesSection;
     private byte[] aux;
     public SectionGlobal() {

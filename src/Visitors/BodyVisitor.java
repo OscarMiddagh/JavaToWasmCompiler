@@ -208,8 +208,12 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
         instructions.add(new Instructions(posInstruction,new byte[]{0x0c,salto}));
     }
     @Override
-    public void visitReturnInstruction(ReturnInstruction returnInstruction) {
+    public void visitIRETURN(IRETURN ireturn) {
         instructions.add(new Instructions(posInstruction,new byte[]{0x0f}));
+    }
+    @Override
+    public void visitRETURN(RETURN ret) {
+        instructions.add(new Instructions(posInstruction,new byte[]{}));
     }
     @Override
     public void visitISTORE(ISTORE istore) {
@@ -224,25 +228,23 @@ public class BodyVisitor extends EmptyVisitor implements IBodyVisitor {
     }
     @Override
     public void visitGETFIELD(GETFIELD obj){
-        int i = 0;
-        String met = fields[0].getName()+fields[0].getSignature();
         String met0 = obj.getName(cpg)+obj.getSignature(cpg);
-        while (i<fields.length&&!met.equals(met0)){
-            met = fields[i].getName()+fields[i].getSignature();
-            i++;
-        }
-        instructions.add(new Instructions(posInstruction, new byte[]{0x23,(byte)i}));
+        instructions.add(new Instructions(posInstruction, new byte[]{0x23,(byte) searchIndexField(met0)}));
     }
     @Override
     public void visitPUTFIELD(PUTFIELD obj){
-        int i = 0;
-        String met = fields[0].getName()+fields[0].getSignature();
         String met0 = obj.getName(cpg)+obj.getSignature(cpg);
-        while (i<fields.length&&!met.equals(met0)){
+        instructions.add(new Instructions(posInstruction, new byte[]{0x24,(byte) searchIndexField(met0)}));
+    }
+    private int searchIndexField(String met0){
+        String met;
+        for (int i = 0; i < methods.length; i++) {
             met = fields[i].getName()+fields[i].getSignature();
-            i++;
+            if(met.equals(met0)){
+                return i;
+            }
         }
-        instructions.add(new Instructions(posInstruction, new byte[]{0x24,(byte)i}));
+        return -1;
     }
     @Override
     public void visitAALOAD(AALOAD aaload) {

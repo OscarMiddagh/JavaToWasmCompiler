@@ -18,13 +18,12 @@ public class BlocksCreator implements IBlocksCreator{
         this.ihs = ihs;
         blocks = new ArrayList<>();
         blockIni = new Block(ihs.getStart().getPosition(),ihs.getEnd().getPosition());
-        blocks.add(blockIni);//Anadiendo el bloque inicial
+        blocks.add(blockIni);
         this.cpg = cpg;
         createBlocks();
     }
 
     private void createBlocks() {
-        //InstructionHandle iHandle = ihs.getStart();
         IBlock block;
         Instruction inst;
         int inicio;
