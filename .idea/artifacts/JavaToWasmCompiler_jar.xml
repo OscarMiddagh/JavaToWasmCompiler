@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="JavaToWasmCompiler:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/JavaToWasmCompiler_jar</output-path>
+    <root id="archive" name="JavaToWasmCompiler.jar">
+      <element id="module-output" name="JavaToWasmCompiler" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../bcel-6.5.0.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

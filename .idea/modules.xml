@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Compiler Java ByteCode WASM.iml" filepath="$PROJECT_DIR$/Compiler Java ByteCode WASM.iml" />
+      <module fileurl="file://$PROJECT_DIR$/JavaToWasmCompiler.iml" filepath="$PROJECT_DIR$/JavaToWasmCompiler.iml" />
     </modules>
   </component>
 </project>

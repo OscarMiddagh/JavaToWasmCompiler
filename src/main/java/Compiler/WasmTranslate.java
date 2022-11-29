@@ -38,6 +38,7 @@ public class WasmTranslate implements WASMCompiler{
     public WasmTranslate(String arg) throws IOException {
         javaClass = new ClassParser(arg).parse();
         class_name = javaClass.getClassName();
+        System.out.println(class_name);
         int index = class_name.lastIndexOf('.');
         String path = class_name.substring(0, index + 1).replace('.', File.separatorChar);
         class_name = class_name.substring(index + 1);

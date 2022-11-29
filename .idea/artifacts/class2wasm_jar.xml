@@ -1,9 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" build-on-make="true" name="class2wasm:jar">
-    <output-path>$PROJECT_DIR$</output-path>
-    <root id="archive" name="Compiler Java ByteCode WASM.jar">
-      <element id="module-output" name="Compiler Java ByteCode WASM" />
-      <element id="extracted-dir" path="$USER_HOME$/Tesis/bcel-6.5.0/bcel-6.5.0.jar" path-in-jar="/" />
-    </root>
-  </artifact>
-</component>
